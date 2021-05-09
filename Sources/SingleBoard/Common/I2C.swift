@@ -33,93 +33,96 @@
 
 import Foundation
 
+public enum I2CError: Error {
+    case failed
+}
 
 public extension BoardI2CEndpoint {
     // Convenience for RawRepresentable SMBus Commands
-    func readByte<T: RawRepresentable>(command: T) -> UInt8
+    func readByte<T: RawRepresentable>(command: T) throws -> UInt8
         where T.RawValue == UInt8
     {
-        return self.readByte(command: command.rawValue)
+        return try self.readByte(command: command.rawValue)
     }
     
-    func readWord<T: RawRepresentable>(command: T) -> UInt16
+    func readWord<T: RawRepresentable>(command: T) throws -> UInt16
         where T.RawValue == UInt8
     {
-        return self.readWord(command: command.rawValue)
+        return try self.readWord(command: command.rawValue)
     }
     
-    func writeByte<T: RawRepresentable>(command: T, value: UInt8)
+    func writeByte<T: RawRepresentable>(command: T, value: UInt8) throws
         where T.RawValue == UInt8
     {
-        return self.writeByte(command: command.rawValue, value: value)
+        return try self.writeByte(command: command.rawValue, value: value)
     }
     
-    func writeWord<T: RawRepresentable>(command: T, value: UInt16)
+    func writeWord<T: RawRepresentable>(command: T, value: UInt16) throws
         where T.RawValue == UInt8
     {
-        return self.writeWord(command: command.rawValue, value: value)
+        return try self.writeWord(command: command.rawValue, value: value)
     }
     
     // Read in Enums and OptionSets
-    func read<T: RawRepresentable>() -> T?
+    func read<T: RawRepresentable>() throws -> T?
         where T.RawValue == UInt8
     {
-        return T(rawValue: self.readByte())
+        return T(rawValue: try self.readByte())
     }
 
-    func read<T: RawRepresentable>() -> T?
+    func read<T: RawRepresentable>() throws -> T?
         where T.RawValue == UInt16
     {
-        return T(rawValue: self.readWord())
+        return T(rawValue: try self.readWord())
     }
 
-    func read<T: RawRepresentable, U: RawRepresentable>(command: T) -> U?
+    func read<T: RawRepresentable, U: RawRepresentable>(command: T) throws -> U?
         where T.RawValue == UInt8, U.RawValue == UInt8
     {
-        return U(rawValue: self.readByte(command: command.rawValue))
+        return U(rawValue: try self.readByte(command: command.rawValue))
     }
 
-    func read<T: RawRepresentable, U: RawRepresentable>(command: T) -> U?
+    func read<T: RawRepresentable, U: RawRepresentable>(command: T) throws -> U?
         where T.RawValue == UInt8, U.RawValue == UInt16
     {
-        return U(rawValue: self.readWord(command: command.rawValue))
+        return U(rawValue: try self.readWord(command: command.rawValue))
     }
 
-    func read<T: RawRepresentable, U: OptionSet>(command: T) -> U
+    func read<T: RawRepresentable, U: OptionSet>(command: T) throws -> U
         where T.RawValue == UInt8, U.RawValue == UInt8
     {
-        return U(rawValue: self.readByte(command: command.rawValue))
+        return U(rawValue: try self.readByte(command: command.rawValue))
     }
 
-    func read<T: RawRepresentable, U: OptionSet>(command: T) -> U
+    func read<T: RawRepresentable, U: OptionSet>(command: T) throws -> U
         where T.RawValue == UInt8, U.RawValue == UInt16
     {
-        return U(rawValue: self.readWord(command: command.rawValue))
+        return U(rawValue: try self.readWord(command: command.rawValue))
     }
 
     // Write Enums and OptionSets
-    func write<T: RawRepresentable>(value: T)
+    func write<T: RawRepresentable>(value: T) throws
         where T.RawValue == UInt8
     {
-        return self.writeByte(value: value.rawValue)
+        return try self.writeByte(value: value.rawValue)
     }
 
-    func write<T: RawRepresentable>(value: T)
+    func write<T: RawRepresentable>(value: T) throws
         where T.RawValue == UInt16
     {
-        return self.writeWord(value: value.rawValue)
+        return try self.writeWord(value: value.rawValue)
     }
 
-    func write<T: RawRepresentable, U: RawRepresentable>(command: T, value: U)
+    func write<T: RawRepresentable, U: RawRepresentable>(command: T, value: U) throws
         where T.RawValue == UInt8, U.RawValue == UInt8
     {
-        return self.writeByte(command: command.rawValue, value: value.rawValue)
+        return try self.writeByte(command: command.rawValue, value: value.rawValue)
     }
 
-    func write<T: RawRepresentable, U: RawRepresentable>(command: T, value: U)
+    func write<T: RawRepresentable, U: RawRepresentable>(command: T, value: U) throws
         where T.RawValue == UInt8, U.RawValue == UInt16
     {
-        return self.writeWord(command: command.rawValue, value: value.rawValue)
+        return try self.writeWord(command: command.rawValue, value: value.rawValue)
     }
 }
 
@@ -190,65 +193,65 @@ public final class SysI2CBus: BoardI2CBus {
         return endpoint
     }
 
-    fileprivate func openChannel() {
+    fileprivate func openChannel() throws {
         let filePath: String = "/dev/i2c-\(self.busId)"
 
         let fdI2C = open(filePath, O_RDWR)
         guard fdI2C > 0 else {
-            fatalError()
+            throw I2CError.failed
         }
 
         self.fdI2C = fdI2C
     }
 
     // MARK: I2C Read/Write
-    fileprivate func readByte(at address: UInt8) -> UInt8? {
+    fileprivate func readByte(at address: UInt8) throws -> UInt8? {
         var data = [UInt8](repeating: 0, count: 1)
-        guard i2cIoctl(.read, address: address, length: UInt16(data.count), data: &data) else { return nil }
+        guard try i2cIoctl(.read, address: address, length: UInt16(data.count), data: &data) else { return nil }
         return data[0]
     }
 
-    fileprivate func readWord(at address: UInt8) -> UInt16? {
+    fileprivate func readWord(at address: UInt8) throws -> UInt16? {
         var data = [UInt8](repeating: 0, count: 2)
-        guard i2cIoctl(.read, address: address, length: UInt16(data.count), data: &data) else { return nil }
+        guard try i2cIoctl(.read, address: address, length: UInt16(data.count), data: &data) else { return nil }
         return (UInt16(data[1]) << 8) + UInt16(data[0])
     }
 
-    fileprivate func readData(at address: UInt8, length: Int) -> Data? {
+    fileprivate func readData(at address: UInt8, length: Int) throws -> Data? {
         var data = Data(count: length)
-        let success = data.withUnsafeMutableBytes {
+        let success = try data.withUnsafeMutableBytes {
             (dataBuffer) in
-            return i2cIoctl(.read, address: address, length: UInt16(length), data: dataBuffer)
+            return try i2cIoctl(.read, address: address, length: UInt16(length), data: dataBuffer)
         }
         return success ? data : nil
     }
 
-    fileprivate func writeByte(at address: UInt8, value: UInt8) -> Bool {
+    fileprivate func writeByte(at address: UInt8, value: UInt8) throws -> Bool {
         var data = [UInt8](repeating:0, count: 1)
 
         data[0] = value
-        return i2cIoctl(.write, address: address, length: 1, data: &data)
+        return try i2cIoctl(.write, address: address, length: 1, data: &data)
     }
 
-    fileprivate func writeWord(at address: UInt8, value: UInt16) -> Bool {
+    fileprivate func writeWord(at address: UInt8, value: UInt16) throws -> Bool {
         var data = [UInt8](repeating:0, count: 2)
 
         data[0] = UInt8(value & 0xFF)
         data[1] = UInt8(value >> 8)
-        return i2cIoctl(.write, address: address, length: 2, data: &data)
+        return try i2cIoctl(.write, address: address, length: 2, data: &data)
     }
 
-    fileprivate func writeData(at address: UInt8, value: Data) -> Bool {
+    fileprivate func writeData(at address: UInt8, value: Data) throws -> Bool {
         var internalValue = value
-        return internalValue.withUnsafeMutableBytes {
+        return try internalValue.withUnsafeMutableBytes {
             (dataBuffer) in
-            return i2cIoctl(.write, address: address, length: UInt16(value.count), data: dataBuffer)
+            return try i2cIoctl(.write, address: address, length: UInt16(value.count), data: dataBuffer)
         }
     }
 
-    private func i2cIoctl(_ readOrWrite: SMBusReadWrite, address: UInt8, length: UInt16, data: UnsafeMutablePointer<UInt8>?) -> Bool {
+    private func i2cIoctl(_ readOrWrite: SMBusReadWrite, address: UInt8, length: UInt16, data: UnsafeMutablePointer<UInt8>?) throws -> Bool {
         if self.fdI2C == -1 {
-            self.openChannel()
+            try self.openChannel()
         }
 
         let flags: I2CMessageFlags = readOrWrite.isRead ? [.read] : []
@@ -263,40 +266,40 @@ public final class SysI2CBus: BoardI2CBus {
     }
 
     // MARK: SMBus Read/Write
-    fileprivate func setCurrentEndpoint(to address: UInt8) {
+    fileprivate func setCurrentEndpoint(to address: UInt8) throws {
         if self.fdI2C == -1 {
-            self.openChannel()
+            try self.openChannel()
         }
 
         guard self.currentEndpoint != address else { return }
 
         let result = ioctl(fdI2C, SysI2CBus.I2C_SLAVE_FORCE, CInt(address))
         guard result == 0 else {
-            fatalError()
+            throw I2CError.failed
         }
 
         self.currentEndpoint = address
     }
 
-    fileprivate func readByte(command: UInt8) -> UInt8? {
+    fileprivate func readByte(command: UInt8) throws -> UInt8? {
         var data = [UInt8](repeating:0, count: SysI2CBus.I2C_MAX_LENGTH+1)
 
-        guard smbusIoctl(.read, command: command, dataKind: .byteData, data: &data) else { return nil }
+        guard try smbusIoctl(.read, command: command, dataKind: .byteData, data: &data) else { return nil }
         return data[0]
     }
 
-    fileprivate func readWord(command: UInt8) -> UInt16? {
+    fileprivate func readWord(command: UInt8) throws -> UInt16? {
         var data = [UInt8](repeating:0, count: SysI2CBus.I2C_MAX_LENGTH+1)
 
-        guard smbusIoctl(.read, command: command, dataKind: .wordData, data: &data) else { return nil }
+        guard try smbusIoctl(.read, command: command, dataKind: .wordData, data: &data) else { return nil }
         return (UInt16(data[1]) << 8) + UInt16(data[0])
     }
 
-    fileprivate func readData(command: UInt8) -> Data? {
+    fileprivate func readData(command: UInt8) throws -> Data? {
         var data = Data(count: SysI2CBus.I2C_MAX_LENGTH+1)
-        let success = data.withUnsafeMutableBytes {
+        let success = try data.withUnsafeMutableBytes {
             (dataBuffer) in
-            return smbusIoctl(.read, command: command, dataKind: .blockData, data: dataBuffer)
+            return try smbusIoctl(.read, command: command, dataKind: .blockData, data: dataBuffer)
         }
         guard success else { return nil }
         guard let length = data.popFirst() else { return nil }
@@ -304,53 +307,53 @@ public final class SysI2CBus: BoardI2CBus {
         return data
     }
 
-    fileprivate func readByteArray(command: UInt8) -> [UInt8]? {
+    fileprivate func readByteArray(command: UInt8) throws -> [UInt8]? {
         var data = [UInt8](repeating:0, count: SysI2CBus.I2C_MAX_LENGTH+1)
 
-        guard smbusIoctl(.read, command: command, dataKind: .blockData, data: &data) else { return nil }
+        guard try smbusIoctl(.read, command: command, dataKind: .blockData, data: &data) else { return nil }
         let lenData = Int(data[0])
         return Array(data[1...lenData])
     }
 
-    fileprivate func writeQuick() -> Bool {
-        return smbusIoctl(.write, command: 0, dataKind: .quick, data: nil)
+    fileprivate func writeQuick() throws -> Bool {
+        return try smbusIoctl(.write, command: 0, dataKind: .quick, data: nil)
     }
 
-    fileprivate func writeByte(command: UInt8, value: UInt8) -> Bool {
+    fileprivate func writeByte(command: UInt8, value: UInt8) throws -> Bool {
         var data = Data(count: MemoryLayout<UInt8>.size)
         data[0] = value
 
-        return data.withUnsafeMutableBytes {
+        return try data.withUnsafeMutableBytes {
             (dataBuffer) in
-            return smbusIoctl(.write, command: command, dataKind: .byteData, data: dataBuffer)
+            return try smbusIoctl(.write, command: command, dataKind: .byteData, data: dataBuffer)
         }
     }
 
-    fileprivate func writeWord(command: UInt8, value: UInt16) -> Bool {
+    fileprivate func writeWord(command: UInt8, value: UInt16) throws -> Bool {
         var data = Data(count: MemoryLayout<UInt16>.size)
         data[0] = UInt8(value & 0xFF)
         data[1] = UInt8(value >> 8)
 
-        return data.withUnsafeMutableBytes {
+        return try data.withUnsafeMutableBytes {
             (dataBuffer) in
-            return smbusIoctl(.write, command: command, dataKind: .wordData, data: dataBuffer)
+            return try smbusIoctl(.write, command: command, dataKind: .wordData, data: dataBuffer)
         }
     }
 
-    fileprivate func writeData(command: UInt8, value: Data) -> Bool {
+    fileprivate func writeData(command: UInt8, value: Data) throws -> Bool {
         guard value.count <= SysI2CBus.I2C_MAX_LENGTH else { return false }
         var data = Data(capacity: value.count + 1)
         data.append(UInt8(value.count))
         data.append(data)
-        return data.withUnsafeMutableBytes {
+        return try data.withUnsafeMutableBytes {
             (dataBuffer) in
-            return smbusIoctl(.write, command: command, dataKind: .blockData, data: dataBuffer)
+            return try smbusIoctl(.write, command: command, dataKind: .blockData, data: dataBuffer)
         }
     }
 
-    private func smbusIoctl(_ readOrWrite: SMBusReadWrite, command: UInt8, dataKind: SMBusDataKind, data: UnsafeMutablePointer<UInt8>?) -> Bool {
+    private func smbusIoctl(_ readOrWrite: SMBusReadWrite, command: UInt8, dataKind: SMBusDataKind, data: UnsafeMutablePointer<UInt8>?) throws -> Bool {
         if self.fdI2C == -1 {
-            self.openChannel()
+            try self.openChannel()
         }
 
         var args = SMBusData(readOrWrite, command: command, dataKind: dataKind, data: data)
@@ -372,111 +375,114 @@ public final class SysI2CEndpoint: BoardI2CEndpoint {
     }
 
     public var reachable: Bool {
-        controller.setCurrentEndpoint(to: address)
-
-        return controller.readByte(command: 0) != nil
+        do {
+            try controller.setCurrentEndpoint(to: address)
+            return (try? controller.readByte(command: 0)) != nil
+        } catch {
+            return false
+        }
     }
 
     //
     // Generic I2C
     //
 
-    public func readByte() -> UInt8 {
-        guard let byte = controller.readByte(at: address) else { fatalError() }
+    public func readByte() throws -> UInt8 {
+        guard let byte = try controller.readByte(at: address) else { throw I2CError.failed }
         return byte
     }
 
-    public func readWord() -> UInt16 {
-        guard let word = controller.readWord(at: address) else { fatalError() }
+    public func readWord() throws -> UInt16 {
+        guard let word = try controller.readWord(at: address) else { throw I2CError.failed }
         return word
     }
 
-    public func readData(length: Int) -> Data {
-        guard let data = controller.readData(at: address, length: length) else { fatalError() }
+    public func readData(length: Int) throws -> Data {
+        guard let data = try controller.readData(at: address, length: length) else { throw I2CError.failed }
         return data
     }
 
-    public func decode<T: I2CReadable>() -> T {
-        guard let data = controller.readData(at: address, length: T.dataLength) else { fatalError() }
+    public func decode<T: I2CReadable>() throws -> T {
+        guard let data = try controller.readData(at: address, length: T.dataLength) else { throw I2CError.failed }
         return T(data: data)
     }
 
-    public func writeByte(value: UInt8) {
-        guard controller.writeByte(at: address, value: value) else { fatalError() }
+    public func writeByte(value: UInt8) throws {
+        guard try controller.writeByte(at: address, value: value) else { throw I2CError.failed }
     }
 
-    public func writeWord(value: UInt16) {
-        guard controller.writeWord(at: address, value: value) else { fatalError() }
+    public func writeWord(value: UInt16) throws {
+        guard try controller.writeWord(at: address, value: value) else { throw I2CError.failed }
     }
 
-    public func writeData(value: Data) {
-        guard controller.writeData(at: address, value: value) else { fatalError() }
+    public func writeData(value: Data) throws {
+        guard try controller.writeData(at: address, value: value) else { throw I2CError.failed }
     }
 
-    public func encode<T>(value: T) where T : I2CWritable {
-        guard controller.writeData(at: address, value: value.encodeToData()) else { fatalError() }
+    public func encode<T>(value: T) throws where T : I2CWritable {
+        guard try controller.writeData(at: address, value: value.encodeToData()) else { throw I2CError.failed }
     }
 
     //
     // SMBus
     //
 
-    public func readByte(command: UInt8) -> UInt8 {
-        controller.setCurrentEndpoint(to: address)
+    public func readByte(command: UInt8) throws -> UInt8 {
+        try controller.setCurrentEndpoint(to: address)
 
-        guard let byte = controller.readByte(command: command) else { fatalError() }
+        guard let byte = try controller.readByte(command: command) else { throw I2CError.failed }
         return byte
     }
 
-    public func readWord(command: UInt8) -> UInt16 {
-        controller.setCurrentEndpoint(to: address)
+    public func readWord(command: UInt8) throws -> UInt16 {
+        try controller.setCurrentEndpoint(to: address)
 
-        guard let word = controller.readWord(command: command) else { fatalError() }
+        guard let word = try controller.readWord(command: command) else { throw I2CError.failed }
         return word
     }
 
-    public func readData(command: UInt8) -> Data {
-        controller.setCurrentEndpoint(to: address)
+    public func readData(command: UInt8) throws -> Data {
+        try controller.setCurrentEndpoint(to: address)
 
-        guard let data = controller.readData(command: command) else { fatalError() }
+        guard let data = try controller.readData(command: command) else { throw I2CError.failed }
         return data
     }
 
-    public func decode<T: I2CReadable>(command: UInt8) -> T {
-        controller.setCurrentEndpoint(to: address)
+    public func decode<T: I2CReadable>(command: UInt8) throws -> T {
+        try controller.setCurrentEndpoint(to: address)
 
-        guard let data = controller.readData(command: command) else { fatalError() }
+        guard let data = try controller.readData(command: command) else { throw I2CError.failed }
         return T(data: data)
     }
 
-    public func writeQuick() {
-        controller.setCurrentEndpoint(to: address)
+    public func writeQuick() throws {
+        try controller.setCurrentEndpoint(to: address)
 
-        guard controller.writeQuick() else { fatalError() }
+        guard try controller.writeQuick() else { throw I2CError.failed }
     }
 
-    public func writeByte(command: UInt8, value: UInt8) {
-        controller.setCurrentEndpoint(to: address)
+    public func writeByte(command: UInt8, value: UInt8) throws {
+        try controller.setCurrentEndpoint(to: address)
 
-        guard controller.writeByte(command: command, value: value) else { fatalError() }
+        guard try controller.writeByte(command: command, value: value) else { throw I2CError.failed }
     }
 
-    public func writeWord(command: UInt8, value: UInt16) {
-        controller.setCurrentEndpoint(to: address)
+    public func writeWord(command: UInt8, value: UInt16) throws {
+        try controller.setCurrentEndpoint(to: address)
 
-        guard controller.writeWord(command: command, value: value) else { fatalError() }
+        guard try controller.writeWord(command: command, value: value) else { throw I2CError.failed }
     }
 
-    public func writeData(command: UInt8, value: Data) {
-        controller.setCurrentEndpoint(to: address)
+    public func writeData(command: UInt8, value: Data) throws {
+        try controller.setCurrentEndpoint(to: address)
 
-        guard controller.writeData(command: command, value: value) else { fatalError() }
+        guard try controller.writeData(command: command, value: value) else { throw I2CError.failed }
     }
 
-    public func encode<T>(command: UInt8, value: T) where T : I2CWritable {
-        controller.setCurrentEndpoint(to: address)
+    public func encode<T>(command: UInt8, value: T) throws where T : I2CWritable {
+        try controller.setCurrentEndpoint(to: address)
 
-        guard controller.writeData(command: command, value: value.encodeToData()) else { fatalError() }
+        guard try controller.writeData(command: command, value: value.encodeToData()) else { throw I2CError.failed }
     }
 }
 

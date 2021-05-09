@@ -115,44 +115,44 @@ final class SingleBoardTests: XCTestCase {
     }
     
 
-    func testReadWithEnums() {
+    func testReadWithEnums() throws {
         let mockEndpoint = MockI2CEndpoint()
 
         mockEndpoint.bufferByte = 0xA5
         mockEndpoint.bufferWord = 0xF0F0
 
-        let testByte: TestByte? = mockEndpoint.read(command: TestCommand.commandOne)
+        let testByte: TestByte? = try mockEndpoint.read(command: TestCommand.commandOne)
         XCTAssertEqual(testByte, .testSetting)
         XCTAssertEqual(mockEndpoint.lastCommand, TestCommand.commandOne.rawValue)
 
-        let testWord: TestWord? = mockEndpoint.read(command: TestCommand.commandTwo)
+        let testWord: TestWord? = try mockEndpoint.read(command: TestCommand.commandTwo)
         XCTAssertEqual(testWord, .testSetting)
         XCTAssertEqual(mockEndpoint.lastCommand, TestCommand.commandTwo.rawValue)
     }
 
-    func testReadWithOptionSet() {
+    func testReadWithOptionSet() throws {
         let mockEndpoint = MockI2CEndpoint()
 
         mockEndpoint.bufferByte = 0x10
         mockEndpoint.bufferWord = 0x1000
 
-        let testByte: TestOptionByte = mockEndpoint.read(command: TestCommand.commandOne)
+        let testByte: TestOptionByte = try mockEndpoint.read(command: TestCommand.commandOne)
         XCTAssertEqual(testByte, .testSetting)
         XCTAssertEqual(mockEndpoint.lastCommand, TestCommand.commandOne.rawValue)
 
-        let testWord: TestOptionWord = mockEndpoint.read(command: TestCommand.commandTwo)
+        let testWord: TestOptionWord = try mockEndpoint.read(command: TestCommand.commandTwo)
         XCTAssertEqual(testWord, .testSetting)
         XCTAssertEqual(mockEndpoint.lastCommand, TestCommand.commandTwo.rawValue)
     }
 
-    func testWriteWithEnums() {
+    func testWriteWithEnums() throws {
         let mockEndpoint = MockI2CEndpoint()
 
-        mockEndpoint.write(command: TestCommand.commandOne, value: TestOptionByte.testSetting)
+        try mockEndpoint.write(command: TestCommand.commandOne, value: TestOptionByte.testSetting)
         XCTAssertEqual(mockEndpoint.bufferByte, 0x10)
         XCTAssertEqual(mockEndpoint.lastCommand, 1)
 
-        mockEndpoint.write(command: TestCommand.commandTwo, value: TestOptionWord.testSetting)
+        try mockEndpoint.write(command: TestCommand.commandTwo, value: TestOptionWord.testSetting)
         XCTAssertEqual(mockEndpoint.bufferWord, 0x1000)
         XCTAssertEqual(mockEndpoint.lastCommand, 2)
     }

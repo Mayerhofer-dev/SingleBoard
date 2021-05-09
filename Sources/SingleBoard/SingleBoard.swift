@@ -112,29 +112,29 @@ public protocol BoardI2CEndpoint: class {
     //
     // I2C API
     //
-    func readByte() -> UInt8
-    func readWord() -> UInt16
-    func readData(length: Int) -> Data
-    func decode<T: I2CReadable>() -> T
+    func readByte() throws -> UInt8
+    func readWord() throws -> UInt16
+    func readData(length: Int) throws -> Data
+    func decode<T: I2CReadable>() throws -> T
 
-    func writeByte(value: UInt8)
-    func writeWord(value: UInt16)
-    func writeData(value: Data)
-    func encode<T: I2CWritable>(value: T)
+    func writeByte(value: UInt8) throws
+    func writeWord(value: UInt16) throws
+    func writeData(value: Data) throws
+    func encode<T: I2CWritable>(value: T) throws
 
     //
     // SMBus
     //
-    func readByte(command: UInt8) -> UInt8
-    func readWord(command: UInt8) -> UInt16
-    func readData(command: UInt8) -> Data
-    func decode<T: I2CReadable>(command: UInt8) -> T
+    func readByte(command: UInt8) throws -> UInt8
+    func readWord(command: UInt8) throws -> UInt16
+    func readData(command: UInt8) throws -> Data
+    func decode<T: I2CReadable>(command: UInt8) throws -> T
 
-    func writeQuick()
-    func writeByte(command: UInt8, value: UInt8)
-    func writeWord(command: UInt8, value: UInt16)
-    func writeData(command: UInt8, value: Data)
-    func encode<T: I2CWritable>(command: UInt8, value: T)
+    func writeQuick() throws
+    func writeByte(command: UInt8, value: UInt8) throws
+    func writeWord(command: UInt8, value: UInt16) throws
+    func writeData(command: UInt8, value: Data) throws
+    func encode<T: I2CWritable>(command: UInt8, value: T) throws
 }
 
 //
